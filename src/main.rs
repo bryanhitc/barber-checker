@@ -50,7 +50,7 @@ async fn main() -> Result<()> {
 
     match earliest_appointment {
         Some(a) => println!("\nBest option is {}", a),
-        None => println!("No appointments found."),
+        None => println!("\nNo appointments found."),
     }
 
     Ok(())
