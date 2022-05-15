@@ -1,10 +1,10 @@
 mod barber;
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use barber::{Appointment, ResponseData};
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
-    ClientBuilder,
+    Client, ClientBuilder,
 };
 
 const URL: &str = "https://squareup.com/appointments/api/buyer/availability";
@@ -21,15 +21,10 @@ struct Settings {
     pub body: String,
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
-    let settings = load_settings()?;
-    let headers = generate_headers(&settings.cookie, &settings.token)?;
-
-    let client = ClientBuilder::new()
-        .default_headers(headers)
-        .build()
-        .expect("client should be valid");
+    let settings = Settings::from_args_or_env()?;
+    let client = build_client(&settings)?;
 
     let response = client
         .post(URL)
@@ -50,9 +45,7 @@ async fn main() -> Result<()> {
 
     appointments.iter().for_each(|a| println!("{}", a));
 
-    let earliest_appointment = appointments
-        .iter()
-        .min_by(|x, y| x.start.cmp(&y.start));
+    let earliest_appointment = appointments.iter().min_by(|x, y| x.start.cmp(&y.start));
 
     match earliest_appointment {
         Some(a) => println!("\nBest option is {}", a),
@@ -62,33 +55,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-fn load_settings() -> Result<Settings> {
-    // First arg doesn't matter since it's always the name of this binary
-    let mut args = std::env::args().skip(1);
-
-    let cookie = args
-        .next()
-        .map_or_else(|| std::env::var("BARBER_COOKIE"), Ok)
-        .map_err(|err| anyhow::anyhow!(err))?;
-
-    let token = args
-        .next()
-        .map_or_else(|| std::env::var("BARBER_TOKEN"), Ok)
-        .map_err(|err| anyhow::anyhow!(err))?;
-
-    let body = args
-        .next()
-        .map_or_else(|| std::env::var("BARBER_BODY"), Ok)
-        .map_err(|err| anyhow::anyhow!(err))?;
-
-    Ok(Settings {
-        cookie,
-        token,
-        body,
-    })
-}
-
-fn generate_headers(cookie: &str, token: &str) -> Result<HeaderMap> {
+fn build_client(settings: &Settings) -> Result<Client> {
     let mut headers = HeaderMap::with_capacity(STATIC_HEADERS.len() + 2);
     let static_headers = STATIC_HEADERS.iter().map(|(key, value)| {
         (
@@ -98,8 +65,36 @@ fn generate_headers(cookie: &str, token: &str) -> Result<HeaderMap> {
     });
 
     headers.extend(static_headers);
-    headers.append("cookie", HeaderValue::from_str(cookie)?);
-    headers.append("x-csrf-token", HeaderValue::from_str(token)?);
+    headers.append("cookie", HeaderValue::from_str(&settings.cookie)?);
+    headers.append("x-csrf-token", HeaderValue::from_str(&settings.token)?);
 
-    Ok(headers)
+    ClientBuilder::new()
+        .default_headers(headers)
+        .build()
+        .map_err(Error::from)
+}
+
+impl Settings {
+    pub fn from_args_or_env() -> Result<Settings> {
+        // First arg doesn't matter since it's always the name of this binary
+        let mut args = std::env::args().skip(1);
+
+        let cookie = args
+            .next()
+            .map_or_else(|| std::env::var("BARBER_COOKIE"), Ok)?;
+
+        let token = args
+            .next()
+            .map_or_else(|| std::env::var("BARBER_TOKEN"), Ok)?;
+
+        let body = args
+            .next()
+            .map_or_else(|| std::env::var("BARBER_BODY"), Ok)?;
+
+        Ok(Settings {
+            cookie,
+            token,
+            body,
+        })
+    }
 }
