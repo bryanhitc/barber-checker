@@ -31,7 +31,13 @@ async fn main() -> Result<()> {
         .build()
         .expect("client should be valid");
 
-    let response = client.post(URL).body(settings.body).send().await?;
+    let response = client
+        .post(URL)
+        .body(settings.body)
+        .send()
+        .await?
+        .error_for_status()?;
+
     let response_data = response.json::<ResponseData>().await?;
 
     let appointments = response_data
@@ -45,7 +51,7 @@ async fn main() -> Result<()> {
     appointments.iter().for_each(|a| println!("{}", a));
 
     let earliest_appointment = appointments
-        .into_iter()
+        .iter()
         .min_by(|x, y| x.start.cmp(&y.start));
 
     match earliest_appointment {
