@@ -49,7 +49,7 @@ pub struct Appointment {
 }
 
 impl Appointment {
-    pub fn new(id: usize, availability: Availability) -> Self {
+    pub fn new(id: usize, availability: &Availability) -> Self {
         Self {
             id,
             start: local_from_timestamp(availability.start),
@@ -60,13 +60,13 @@ impl Appointment {
 
 impl Display for Appointment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let date_format = "%D %r";
+        const DATE_FORMAT: &str = "%D %r";
         write!(
             f,
             "Appointment #{}: {} - {}",
             self.id,
-            self.start.format(date_format),
-            self.end.format(date_format)
+            self.start.format(DATE_FORMAT),
+            self.end.format(DATE_FORMAT)
         )
     }
 }

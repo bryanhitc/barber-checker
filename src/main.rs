@@ -1,3 +1,6 @@
+#![deny(clippy::all)]
+#![warn(clippy::pedantic)]
+
 mod barber;
 
 use anyhow::{Error, Result};
@@ -26,26 +29,33 @@ async fn main() -> Result<()> {
     let settings = Settings::from_args_or_env()?;
     let client = build_client(&settings)?;
 
-    let response = client
-        .post(URL)
-        .body(settings.body)
-        .send()
-        .await?
-        .error_for_status()?;
+    let appointments = {
+        let response = client
+            .post(URL)
+            .body(settings.body)
+            .send()
+            .await?
+            .error_for_status()?;
 
-    let response_data = response.json::<ResponseData>().await?;
+        let response_data = response.json::<ResponseData>().await?;
 
-    let appointments = response_data
-        .availability
-        .into_iter()
-        .filter(|a| a.available)
-        .enumerate()
-        .map(|(i, a)| Appointment::new(i + 1, a))
-        .collect::<Vec<_>>();
+        let mut appointments = response_data
+            .availability
+            .iter()
+            .filter(|a| a.available)
+            .enumerate()
+            .map(|(i, a)| Appointment::new(i + 1, a))
+            .collect::<Vec<_>>();
 
-    appointments.iter().for_each(|a| println!("{}", a));
+        appointments.sort_unstable_by_key(|a| a.start);
+        appointments
+    };
 
-    let earliest_appointment = appointments.iter().min_by(|x, y| x.start.cmp(&y.start));
+    for appointment in &appointments {
+        println!("{}", appointment);
+    }
+
+    let earliest_appointment = appointments.first();
 
     match earliest_appointment {
         Some(a) => println!("\nBest option is {}", a),
@@ -75,7 +85,7 @@ fn build_client(settings: &Settings) -> Result<Client> {
 }
 
 impl Settings {
-    pub fn from_args_or_env() -> Result<Settings> {
+    pub fn from_args_or_env() -> Result<Self> {
         // First arg doesn't matter since it's always the name of this binary
         let mut args = std::env::args().skip(1);
 
@@ -91,7 +101,7 @@ impl Settings {
             .next()
             .map_or_else(|| std::env::var("BARBER_BODY"), Ok)?;
 
-        Ok(Settings {
+        Ok(Self {
             cookie,
             token,
             body,
