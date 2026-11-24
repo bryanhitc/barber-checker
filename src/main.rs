@@ -52,13 +52,13 @@ async fn main() -> Result<()> {
     };
 
     for appointment in &appointments {
-        println!("{}", appointment);
+        println!("{appointment}");
     }
 
     let earliest_appointment = appointments.first();
 
     match earliest_appointment {
-        Some(a) => println!("\nBest option is {}", a),
+        Some(a) => println!("\nBest option is {a}"),
         None => println!("\nNo appointments found."),
     }
 

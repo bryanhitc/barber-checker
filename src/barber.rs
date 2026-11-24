@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use chrono::{DateTime, Local, NaiveDateTime, Utc};
+use chrono::{DateTime, Local};
 use serde::Deserialize;
 
 // --------------- Auto-generated structs ---------------
@@ -72,7 +72,7 @@ impl Display for Appointment {
 }
 
 fn local_from_timestamp(timestamp: i64) -> DateTime<Local> {
-    let naive = NaiveDateTime::from_timestamp(timestamp, 0);
-    let utc = DateTime::<Utc>::from_utc(naive, Utc);
-    utc.with_timezone(&Local)
+    DateTime::from_timestamp(timestamp, 0)
+        .expect("timestamp should be in range")
+        .with_timezone(&Local)
 }
