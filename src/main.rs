@@ -47,7 +47,7 @@ async fn main() -> Result<()> {
             .map(|(i, a)| Appointment::new(i + 1, a))
             .collect::<Vec<_>>();
 
-        appointments.sort_unstable_by_key(|a| a.start);
+        appointments.sort_unstable_by_key(|a| a.start.timestamp());
         appointments
     };
 

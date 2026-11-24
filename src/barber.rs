@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use chrono::{DateTime, Local};
+use jiff::{tz::TimeZone, Timestamp, ZonedDateTime};
 use serde::Deserialize;
 
 // --------------- Auto-generated structs ---------------
@@ -44,8 +44,8 @@ pub struct Resources {}
 
 pub struct Appointment {
     pub id: usize,
-    pub start: DateTime<Local>,
-    pub end: DateTime<Local>,
+    pub start: ZonedDateTime,
+    pub end: ZonedDateTime,
 }
 
 impl Appointment {
@@ -65,14 +65,14 @@ impl Display for Appointment {
             f,
             "Appointment #{}: {} - {}",
             self.id,
-            self.start.format(DATE_FORMAT),
-            self.end.format(DATE_FORMAT)
+            self.start.strftime(DATE_FORMAT),
+            self.end.strftime(DATE_FORMAT)
         )
     }
 }
 
-fn local_from_timestamp(timestamp: i64) -> DateTime<Local> {
-    DateTime::from_timestamp(timestamp, 0)
+fn local_from_timestamp(timestamp: i64) -> ZonedDateTime {
+    Timestamp::from_second(timestamp)
         .expect("timestamp should be in range")
-        .with_timezone(&Local)
+        .to_zoned_datetime(TimeZone::system())
 }
